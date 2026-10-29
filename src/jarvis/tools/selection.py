@@ -210,18 +210,21 @@ def _select_embedding(
     cached_vectors = backend_cache.get(catalogue_key)
     if cached_vectors is None:
         cached_vectors = []
+        cacheable = True
         for name, summary in all_tools.items():
             tool_vec = embedding_backend.embed(
                 summary, embed_model, timeout_sec=embed_timeout_sec,
             )
             if tool_vec is None:
+                cacheable = False
                 continue
             tool_arr = np.array(tool_vec, dtype=np.float32)
             t_norm = np.linalg.norm(tool_arr)
             if t_norm > 0:
                 tool_arr = tool_arr / t_norm
             cached_vectors.append((name, tool_arr))
-        backend_cache[catalogue_key] = cached_vectors
+        if cacheable:
+            backend_cache[catalogue_key] = cached_vectors
 
     for name, tool_arr in cached_vectors:
         sim = float(np.dot(query_arr, tool_arr))
